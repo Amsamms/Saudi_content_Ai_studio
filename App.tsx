@@ -1,6 +1,6 @@
-
 import React, { useState } from 'react';
 import { Stepper } from './components/Stepper';
+import { LanguageSelection } from './components/LanguageSelection';
 import { Step1_MarketAnalysis } from './components/Step1_MarketAnalysis';
 import { Step2_IdeaGeneration } from './components/Step2_IdeaGeneration';
 import { Step3_ContentWriting } from './components/Step3_ContentWriting';
@@ -8,13 +8,14 @@ import { Step4_VisualGeneration } from './components/Step4_VisualGeneration';
 import { Step5_VoiceGeneration } from './components/Step5_VoiceGeneration';
 import { Step6_Publish } from './components/Step6_Publish';
 import { STEPS } from './constants';
-import type { AppState, ContentIdea } from './types';
+import type { AppState, Language } from './types';
 import { AppStatus } from './types';
 
 const App: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [appState, setAppState] = useState<AppState>({
     status: AppStatus.IDLE,
+    language: null,
     industry: '',
     marketAnalysis: '',
     contentIdeas: [],
@@ -46,6 +47,7 @@ const App: React.FC = () => {
     setCurrentStep(1);
     setAppState({
       status: AppStatus.IDLE,
+      language: null,
       industry: '',
       marketAnalysis: '',
       contentIdeas: [],
@@ -56,6 +58,10 @@ const App: React.FC = () => {
       publishDescription: '',
       error: null,
     });
+  }
+
+  const handleLanguageSelect = (language: Language) => {
+    updateState({ language });
   }
 
   const renderStepContent = () => {
@@ -89,10 +95,16 @@ const App: React.FC = () => {
       </header>
       
       <div className="w-full max-w-4xl mx-auto">
-        <Stepper currentStep={currentStep} steps={STEPS.map(s => s.name)} />
-        <main className="mt-8 bg-slate-800/50 rounded-2xl shadow-lg p-6 sm:p-8 border border-slate-700">
-          {renderStepContent()}
-        </main>
+        {!appState.language ? (
+          <LanguageSelection onSelectLanguage={handleLanguageSelect} />
+        ) : (
+          <>
+            <Stepper currentStep={currentStep} steps={STEPS.map(s => s.name)} />
+            <main className="mt-8 bg-slate-800/50 rounded-2xl shadow-lg p-6 sm:p-8 border border-slate-700">
+              {renderStepContent()}
+            </main>
+          </>
+        )}
       </div>
     </div>
   );

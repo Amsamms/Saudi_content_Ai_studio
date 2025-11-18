@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import type { AppState } from '../types';
 import { AppStatus } from '../types';
@@ -18,10 +17,10 @@ export const Step6_Publish: React.FC<Step6Props> = ({ appState, updateState, onB
 
     useEffect(() => {
         const handleGenerateDesc = async () => {
-            if (appState.writtenContent && appState.selectedIdea && !appState.publishDescription) {
+            if (appState.writtenContent && appState.selectedIdea && !appState.publishDescription && appState.language) {
                 updateState({ status: AppStatus.LOADING, error: null });
                 try {
-                    const desc = await generatePublishDescription(appState.writtenContent, appState.selectedIdea);
+                    const desc = await generatePublishDescription(appState.writtenContent, appState.selectedIdea, appState.language);
                     updateState({ publishDescription: desc, status: AppStatus.SUCCESS });
                 } catch (err) {
                     const error = err as Error;
@@ -31,7 +30,7 @@ export const Step6_Publish: React.FC<Step6Props> = ({ appState, updateState, onB
         };
         handleGenerateDesc();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [appState.writtenContent, appState.selectedIdea]);
+    }, [appState.writtenContent, appState.selectedIdea, appState.language]);
 
     if (published) {
         return (

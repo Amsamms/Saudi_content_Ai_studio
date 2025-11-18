@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import type { AppState } from '../types';
 import { AppStatus } from '../types';
@@ -15,13 +14,13 @@ export const Step1_MarketAnalysis: React.FC<Step1Props> = ({ appState, updateSta
     const [localIndustry, setLocalIndustry] = useState(appState.industry);
 
     const handleGenerate = async () => {
-        if (!localIndustry) {
+        if (!localIndustry || !appState.language) {
             updateState({ error: 'Please enter an industry.' });
             return;
         }
         updateState({ status: AppStatus.LOADING, industry: localIndustry, error: null });
         try {
-            const analysis = await generateMarketAnalysis(localIndustry);
+            const analysis = await generateMarketAnalysis(localIndustry, appState.language);
             updateState({ marketAnalysis: analysis, status: AppStatus.SUCCESS });
         } catch (err) {
             const error = err as Error;

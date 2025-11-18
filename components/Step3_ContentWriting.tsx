@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import type { AppState } from '../types';
 import { AppStatus } from '../types';
@@ -16,10 +15,10 @@ export const Step3_ContentWriting: React.FC<Step3Props> = ({ appState, updateSta
 
     useEffect(() => {
         const handleWriteContent = async () => {
-            if (appState.selectedIdea && !appState.writtenContent) {
+            if (appState.selectedIdea && !appState.writtenContent && appState.language) {
                 updateState({ status: AppStatus.LOADING, error: null });
                 try {
-                    const content = await writeContent(appState.selectedIdea);
+                    const content = await writeContent(appState.selectedIdea, appState.language);
                     updateState({ writtenContent: content, status: AppStatus.SUCCESS });
                 } catch (err) {
                     const error = err as Error;
@@ -30,7 +29,7 @@ export const Step3_ContentWriting: React.FC<Step3Props> = ({ appState, updateSta
 
         handleWriteContent();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [appState.selectedIdea]);
+    }, [appState.selectedIdea, appState.language]);
 
     if (!appState.selectedIdea) {
         return (

@@ -14,9 +14,10 @@ interface Step2Props {
 export const Step2_IdeaGeneration: React.FC<Step2Props> = ({ appState, updateState, onNext, onBack }) => {
 
     const handleGenerate = async () => {
+        if (!appState.language) return;
         updateState({ status: AppStatus.LOADING, error: null });
         try {
-            const ideas = await generateContentIdeas(appState.marketAnalysis, appState.industry);
+            const ideas = await generateContentIdeas(appState.marketAnalysis, appState.industry, appState.language);
             updateState({ contentIdeas: ideas, status: AppStatus.SUCCESS });
         } catch (err) {
             const error = err as Error;
@@ -36,9 +37,6 @@ export const Step2_IdeaGeneration: React.FC<Step2Props> = ({ appState, updateSta
                 Based on the analysis, our AI will now suggest tailored content ideas and the best formats for them.
             </p>
 
-            {/* FIX: The conditional rendering logic was causing a TypeScript error and inconsistent UI behavior.
-                By removing `appState.status !== AppStatus.LOADING` from the condition, the button remains visible
-                but disabled during the loading state, which is consistent with other steps and provides better user feedback. */}
             {appState.contentIdeas.length === 0 && (
                  <button
                     onClick={handleGenerate}

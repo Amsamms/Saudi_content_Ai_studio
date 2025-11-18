@@ -1,4 +1,3 @@
-
 export enum AppStatus {
     IDLE = 'idle',
     LOADING = 'loading',
@@ -12,8 +11,11 @@ export interface ContentIdea {
     description: string;
 }
 
+export type Language = 'en' | 'ar';
+
 export interface AppState {
     status: AppStatus;
+    language: Language | null;
     industry: string;
     marketAnalysis: string;
     contentIdeas: ContentIdea[];

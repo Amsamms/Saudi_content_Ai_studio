@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import type { AppState } from '../types';
 import { AppStatus } from '../types';
@@ -16,10 +15,10 @@ export const Step4_VisualGeneration: React.FC<Step4Props> = ({ appState, updateS
 
     useEffect(() => {
         const handleGenerate = async () => {
-            if (appState.selectedIdea && !appState.generatedImage) {
+            if (appState.selectedIdea && !appState.generatedImage && appState.language) {
                  updateState({ status: AppStatus.LOADING, error: null });
                 try {
-                    const imageB64 = await generateVisual(appState.selectedIdea);
+                    const imageB64 = await generateVisual(appState.selectedIdea, appState.language);
                     updateState({ generatedImage: imageB64, status: AppStatus.SUCCESS });
                 } catch (err) {
                     const error = err as Error;
@@ -29,7 +28,7 @@ export const Step4_VisualGeneration: React.FC<Step4Props> = ({ appState, updateS
         };
         handleGenerate();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [appState.selectedIdea]);
+    }, [appState.selectedIdea, appState.language]);
 
 
     if (!appState.selectedIdea) {

@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import type { AppState } from '../types';
 import { AppStatus } from '../types';
@@ -17,10 +16,10 @@ export const Step5_VoiceGeneration: React.FC<Step5Props> = ({ appState, updateSt
 
     useEffect(() => {
         const handleGenerate = async () => {
-            if (appState.writtenContent && !appState.generatedAudio) {
+            if (appState.writtenContent && !appState.generatedAudio && appState.language) {
                  updateState({ status: AppStatus.LOADING, error: null });
                 try {
-                    const audioB64 = await generateVoice(appState.writtenContent);
+                    const audioB64 = await generateVoice(appState.writtenContent, appState.language);
                     updateState({ generatedAudio: audioB64, status: AppStatus.SUCCESS });
                 } catch (err) {
                     const error = err as Error;
@@ -30,7 +29,7 @@ export const Step5_VoiceGeneration: React.FC<Step5Props> = ({ appState, updateSt
         };
         handleGenerate();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [appState.writtenContent]);
+    }, [appState.writtenContent, appState.language]);
 
 
     if (!appState.writtenContent) {
