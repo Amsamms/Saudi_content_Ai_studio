@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type, GenerateContentResponse, Modality } from "@google/genai";
 import type { ContentIdea } from '../types';
 
@@ -24,6 +23,10 @@ export const generateMarketAnalysis = async (industry: string): Promise<string> 
             model: 'gemini-3-pro-preview',
             contents: prompt,
         });
+        // FIX: Add a check for an empty response to ensure `response.text` is a string.
+        if (!response.text) {
+            throw new Error("Received an empty response from the AI.");
+        }
         return response.text;
     } catch (error) {
         console.error("Error generating market analysis:", error);
@@ -66,7 +69,11 @@ export const generateContentIdeas = async (analysis: string, industry: string): 
             }
         });
         
-        const jsonResponse = JSON.parse(response.text);
+        // FIX: Add a check for an empty response and use .trim() to prevent JSON parsing errors.
+        if (!response.text) {
+            throw new Error("Received an empty response from the AI for content ideas.");
+        }
+        const jsonResponse = JSON.parse(response.text.trim());
         return jsonResponse.ideas;
 
     } catch (error) {
@@ -90,6 +97,10 @@ export const writeContent = async (idea: ContentIdea): Promise<string> => {
             model: 'gemini-3-pro-preview',
             contents: prompt,
         });
+        // FIX: Add a check for an empty response to ensure `response.text` is a string.
+        if (!response.text) {
+            throw new Error("Received an empty response from the AI when writing content.");
+        }
         return response.text;
     } catch (error) {
         console.error("Error writing content:", error);
@@ -106,21 +117,28 @@ export const generateVisual = async (idea: ContentIdea): Promise<string> => {
         Generate an image that captures the essence of this idea, featuring Saudi characters, landscapes, or styles where appropriate. The aesthetic should be modern and engaging.
     `;
     try {
-        const response = await ai.models.generateImages({
-            model: 'imagen-4.0-generate-001',
-            prompt: prompt,
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-image',
+            contents: {
+                parts: [
+                    {
+                        text: prompt,
+                    },
+                ],
+            },
             config: {
-              numberOfImages: 1,
-              outputMimeType: 'image/jpeg',
-              aspectRatio: '1:1',
+                responseModalities: [Modality.IMAGE],
             },
         });
 
-        if (response.generatedImages && response.generatedImages.length > 0) {
-            return response.generatedImages[0].image.imageBytes;
-        } else {
-            throw new Error("No image was generated.");
+        for (const part of response.candidates[0].content.parts) {
+            if (part.inlineData) {
+                return part.inlineData.data;
+            }
         }
+        
+        throw new Error("No image was generated.");
+
     } catch (error) {
         console.error("Error generating visual:", error);
         throw new Error("Failed to generate visual. Please try again.");
@@ -171,6 +189,10 @@ export const generatePublishDescription = async (content: string, idea: ContentI
             model: 'gemini-2.5-flash',
             contents: prompt,
         });
+        // FIX: Add a check for an empty response to ensure `response.text` is a string.
+        if (!response.text) {
+            throw new Error("Received an empty response from the AI for publish description.");
+        }
         return response.text;
     } catch (error) {
         console.error("Error generating publish description:", error);
