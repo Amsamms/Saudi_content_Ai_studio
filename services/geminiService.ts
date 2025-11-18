@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, GenerateContentResponse, Modality } from "@google/genai";
-import type { ContentIdea, Language } from '../types';
+import type { ContentIdea, Language, VoiceOptions } from '../types';
 
 if (!process.env.API_KEY) {
     throw new Error("API_KEY environment variable not set");
@@ -70,7 +70,7 @@ export const generateContentIdeas = async (analysis: string, industry: string, l
 
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
@@ -96,8 +96,32 @@ export const generateContentIdeas = async (analysis: string, industry: string, l
         if (!response.text) {
             throw new Error("Received an empty response from the AI for content ideas.");
         }
-        const jsonResponse = JSON.parse(response.text.trim());
-        return jsonResponse.ideas;
+        
+        // Robust JSON parsing
+        let jsonString = response.text.trim();
+        const jsonMatch = jsonString.match(/```(json)?\s*([\s\S]*?)\s*```/);
+        if (jsonMatch && jsonMatch[2]) {
+            jsonString = jsonMatch[2];
+        }
+
+        const firstBrace = jsonString.indexOf('{');
+        const lastBrace = jsonString.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace > firstBrace) {
+            jsonString = jsonString.substring(firstBrace, lastBrace + 1);
+        }
+
+        try {
+            const jsonResponse = JSON.parse(jsonString);
+            if (!jsonResponse.ideas) {
+                console.error("Parsed JSON does not contain 'ideas' key. Received:", jsonResponse);
+                throw new Error("AI returned an unexpected format for content ideas.");
+            }
+            return jsonResponse.ideas;
+        } catch (parseError) {
+             console.error("Failed to parse JSON response from AI:", parseError);
+             console.error("Original AI response text:", response.text);
+             throw new Error("AI returned an invalid format. Please try generating again.");
+        }
 
     } catch (error) {
         console.error("Error generating content ideas:", error);
@@ -150,6 +174,8 @@ export const generateVisual = async (idea: ContentIdea, language: Language): Pro
             **Content Idea:** "${idea.idea}" - ${idea.description}.
             
             Generate an image that captures the essence of this idea, featuring Saudi characters, landscapes, or styles where appropriate. The aesthetic should be modern and engaging.
+
+            **CRITICAL INSTRUCTION: Do NOT render any text, words, or letters in the image. If the design suggests a place for text (like a sign or banner), leave it blank.**
         `,
         ar: `
             أنشئ صورة عالية الجودة وواقعية لمنشور على وسائل التواصل الاجتماعي. يجب أن تكون الصورة مذهلة بصريًا وذات صلة ثقافية بالمملكة العربية السعودية.
@@ -157,6 +183,8 @@ export const generateVisual = async (idea: ContentIdea, language: Language): Pro
             **فكرة المحتوى:** "${idea.idea}" - ${idea.description}.
 
             أنشئ صورة تجسد جوهر هذه الفكرة، وتتضمن شخصيات أو مناظر طبيعية أو أنماطًا سعودية عند الاقتضاء. يجب أن يكون المظهر الجمالي عصريًا وجذابًا.
+
+            **تعليمات هامة: لا تقم بكتابة أي نص أو كلمات أو حروف في الصورة. إذا كان التصميم يتطلب مساحة للنص (مثل لافتة أو شعار)، اتركها فارغة.**
         `
     }, language);
 
@@ -189,15 +217,78 @@ export const generateVisual = async (idea: ContentIdea, language: Language): Pro
     }
 };
 
-export const generateVoice = async (script: string, language: Language): Promise<string> => {
+export const generativelyEditVisual = async (base64Image: string, prompt: string, language: Language): Promise<string> => {
+    const editPrompt = getBilingualPrompt({
+        en: `Apply the following edit to the image: "${prompt}"`,
+        ar: `طبق التعديل التالي على الصورة: "${prompt}"`
+    }, language);
+
+    try {
+         const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-image',
+            contents: {
+                parts: [
+                    {
+                        inlineData: {
+                            data: base64Image,
+                            mimeType: 'image/jpeg',
+                        },
+                    },
+                    {
+                        text: editPrompt,
+                    },
+                ],
+            },
+            config: {
+                responseModalities: [Modality.IMAGE],
+            },
+        });
+
+        for (const part of response.candidates[0].content.parts) {
+            if (part.inlineData) {
+                return part.inlineData.data;
+            }
+        }
+        
+        throw new Error("Generative edit failed to produce a new image.");
+
+    } catch (error) {
+        console.error("Error during generative edit:", error);
+        throw new Error("Failed to apply generative edits. The model may have refused the request. Please try a different prompt.");
+    }
+};
+
+
+const getPitchInstruction = (pitch: number, language: Language): string => {
+    if (pitch > 1.1) return language === 'ar' ? 'تحدث بنبرة صوت أعلى قليلاً.' : 'Speak with a slightly higher pitch.';
+    if (pitch < 0.9) return language === 'ar' ? 'تحدث بنبرة صوت أعمق قليلاً.' : 'Speak with a slightly lower pitch.';
+    return '';
+};
+
+const getSpeedInstruction = (speed: number, language: Language): string => {
+    if (speed > 1.1) return language === 'ar' ? 'تحدث بوتيرة أسرع قليلاً.' : 'Speak at a slightly faster pace.';
+    if (speed < 0.9) return language === 'ar' ? 'تحدث بوتيرة أبطأ قليلاً.' : 'Speak at a slightly slower pace.';
+    return '';
+};
+
+const getAccentInstruction = (accent: string): string => {
+    if (accent === 'najdi') return 'بلهجة نجدية';
+    if (accent === 'hejazi') return 'بلهجة حجازية';
+    return 'بلهجة سعودية';
+};
+
+export const generateVoice = async (script: string, language: Language, options: VoiceOptions): Promise<string> => {
+    const pitchInstruction = getPitchInstruction(options.pitch, language);
+    const speedInstruction = getSpeedInstruction(options.speed, language);
+    
     const prompt = getBilingualPrompt({
         en: `
-            Please read the following text clearly and with an engaging, professional tone suitable for a social media voiceover.
+            Please read the following text clearly and with an engaging, professional tone suitable for a social media voiceover. ${pitchInstruction} ${speedInstruction}
             
             Text: "${script.substring(0, 800)}"
         `,
         ar: `
-            الرجاء قراءة النص التالي بوضوح وبنبرة احترافية وجذابة بلهجة سعودية، مناسبة للتعليق الصوتي على وسائل التواصل الاجتماعي.
+            الرجاء قراءة النص التالي بوضوح وبنبرة احترافية وجذابة ${getAccentInstruction(options.accent)}، مناسبة للتعليق الصوتي على وسائل التواصل الاجتماعي. ${pitchInstruction} ${speedInstruction}
 
             النص: "${script.substring(0, 800)}"
         `
@@ -211,7 +302,7 @@ export const generateVoice = async (script: string, language: Language): Promise
               responseModalities: [Modality.AUDIO],
               speechConfig: {
                   voiceConfig: {
-                    prebuiltVoiceConfig: { voiceName: 'Kore' }, // A neutral, professional male voice suitable for both languages
+                    prebuiltVoiceConfig: { voiceName: options.persona },
                   },
               },
             },

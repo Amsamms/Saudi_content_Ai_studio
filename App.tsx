@@ -7,7 +7,7 @@ import { Step3_ContentWriting } from './components/Step3_ContentWriting';
 import { Step4_VisualGeneration } from './components/Step4_VisualGeneration';
 import { Step5_VoiceGeneration } from './components/Step5_VoiceGeneration';
 import { Step6_Publish } from './components/Step6_Publish';
-import { STEPS } from './constants';
+import { STEPS, defaultImageEditOptions } from './constants';
 import type { AppState, Language } from './types';
 import { AppStatus } from './types';
 
@@ -23,6 +23,13 @@ const App: React.FC = () => {
     writtenContent: '',
     generatedImage: null,
     generatedAudio: null,
+    voiceOptions: {
+      persona: 'Kore',
+      accent: 'default',
+      pitch: 1,
+      speed: 1,
+    },
+    imageEditOptions: defaultImageEditOptions,
     publishDescription: '',
     error: null,
   });
@@ -55,6 +62,13 @@ const App: React.FC = () => {
       writtenContent: '',
       generatedImage: null,
       generatedAudio: null,
+      voiceOptions: {
+        persona: 'Kore',
+        accent: 'default',
+        pitch: 1,
+        speed: 1,
+      },
+      imageEditOptions: defaultImageEditOptions,
       publishDescription: '',
       error: null,
     });

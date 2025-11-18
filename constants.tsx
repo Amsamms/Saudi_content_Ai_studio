@@ -1,5 +1,6 @@
 
 import React from 'react';
+import type { ImageEditOptions } from './types';
 
 const ChartBarIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
@@ -45,3 +46,21 @@ export const STEPS = [
     { id: 5, name: 'Voice', icon: <SpeakerWaveIcon className="w-6 h-6" /> },
     { id: 6, name: 'Publish', icon: <PaperAirplaneIcon className="w-6 h-6" /> },
 ];
+
+export const defaultImageEditOptions: ImageEditOptions = {
+  brightness: 100,
+  contrast: 100,
+  grayscale: 0,
+  sepia: 0,
+  aspectRatio: 'original' as const,
+  textOverlay: {
+    text: '',
+    position: 'none' as const,
+    color: '#FFFFFF',
+    fontFamily: 'Arial, sans-serif',
+    fontSize: 48,
+    fontWeight: 'bold' as const,
+    opacity: 1,
+    shadow: true,
+  },
+};
